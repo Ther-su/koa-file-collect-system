@@ -27,7 +27,7 @@ module.exports = {
     // 未登录
     loginCheckFailInfo: {
         code: 10005,
-        message: '您尚未登录'
+        message: '您尚未登录或登录凭证已过期'
     },
     // 修改密码失败
     changePasswordFailInfo: {
@@ -42,7 +42,7 @@ module.exports = {
     // 修改基本信息失败
     changeInfoFailInfo: {
         code: 10008,
-        message: '修改基本信息失败'
+        message: '修改用户信息失败'
     },
     // json schema 校验失败
     jsonSchemaFileInfo: {

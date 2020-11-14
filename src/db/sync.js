@@ -8,6 +8,6 @@ const seq = require('./seq')
 
 
 // 执行同步
-seq.sync({ force: true }).then(() => {
-    console.log('sync ok')
-})
+// seq.sync({ force: true }).then(() => {
+//     console.log('sync ok')
+// })

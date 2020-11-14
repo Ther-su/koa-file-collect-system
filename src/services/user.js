@@ -77,9 +77,11 @@ async function deleteUser(id,{transaction}) {
 async function updateUser(
   { gender, userName, fullName, gradeName, school, major},
   id,
-  gradeId
+  gradeId,
+  role
 ) {
   // 拼接修改内容
+  const t = await seq.transaction();
   const updateUserData = {}
   const updateGradeData = {}
   if (gender) {
@@ -106,23 +108,43 @@ async function updateUser(
         where: {
           id
         },
-      },{transaction})
+      },{transaction:t})
     }
-    if (JSON.stringify(updateGradeData)!='{}') {
+    if (JSON.stringify(updateGradeData)!='{}' && role=='admin') {
       await Grade.update(updateGradeData,{
         where: {
-          gradeId
+          id:gradeId
         }
-      })
+      },{transaction:t})
     }
+    await t.commit()
   } catch(e) {
-    throw new Error(error)
+    await t.rollback()
+    throw new Error(e)
   }
 }
+
+async function updatePassword(
+  {password},
+  id
+) {
+  try {
+    await User.update({password}, {
+      where: {
+        id
+      },
+    })
+  }catch(e) {
+    throw new Error(e)
+  }
+}
+
+
 
 module.exports = {
   getOneUser,
   createUser,
   deleteUser,
-  updateUser
+  updateUser,
+  updatePassword
 }

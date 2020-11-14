@@ -4,9 +4,10 @@ const {
     login,
     changeInfo,
     logout,
-    getInfo
+    getInfo,
+    changePassword
 } = require('../controller/user')
-
+const { loginCheck } = require('../middlewares/loginCheck')
 
 
 router.prefix('/api')
@@ -27,12 +28,7 @@ router.post('/user/register', async (ctx, next) => {
 })
 
 
-router.get('/user/info', async (ctx, next) => {
-  const { id } = ctx.session.userInfo
-  ctx.body = await getInfo({id})
-})
-
-router.put('/user/info', async (ctx, next) => {
+router.get('/user/info', loginCheck,async (ctx, next) => {
   const { id } = ctx.session.userInfo
   ctx.body = await getInfo({id})
 })
@@ -42,9 +38,14 @@ router.post('/user/login', async (ctx, next) => {
   ctx.body = await login(ctx, { userName, password })
 })
 
-router.patch('/user/update',  async (ctx, next) => {
-  const { nickName, gender, passowrd } = ctx.request.body
-  ctx.body = await changeInfo(ctx, { nickName, gender, passowrd })
+router.put('/user/modify', loginCheck, async (ctx,  next) => {
+  const { userName, gender, fullName, gradeName, school, major } = ctx.request.body
+  ctx.body = await changeInfo(ctx, { userName, gender, fullName, gradeName, school, major })
+})
+
+router.put('/user/password', loginCheck, async (ctx,  next) => {
+  const { oldPassword, newPassword } = ctx.request.body
+  ctx.body = await changePassword(ctx, { oldPassword, newPassword })
 })
 
 router.put('/user/logout', async (ctx, next) => {
