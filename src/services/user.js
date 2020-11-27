@@ -1,18 +1,21 @@
 const {User,Grade} = require('../db/model')
 const {createGrade} = require('./grade')
 const seq = require('../db/seq')
-async function getOneUser({userName,id}) {
+async function getOneUser({userName,id,password}) {
   // 查询条件
   const whereOpt = {}
   if (userName) {
     whereOpt.userName = userName
+  }
+  if (password) {
+    whereOpt.password = password
   }
   if (id) {
     whereOpt.id = id
   }
   // 查询
   const result = await User.findOne({
-    attributes: ['id', 'userName', 'gender', 'gradeId', 'role', 'fullName',seq.col('grade.gradeName'),seq.col('grade.school'),seq.col('grade.major')],
+    attributes: ['id', 'userName', 'gender', 'gradeId', 'role', 'studentNumber', 'fullName',seq.col('grade.gradeName'),seq.col('grade.school'),seq.col('grade.major')],
     where: whereOpt,
     raw: true,
     include: [
@@ -33,7 +36,7 @@ async function getOneUser({userName,id}) {
   return result
 }
 
-async function createUser({ userName, password, gender, gradeId, role, fullName, major, school, gradeName }) {
+async function createUser({ userName, password, gender, gradeId, role, fullName, major, school, gradeName, studentNumber }) {
   const t = await seq.transaction();
   try {
     let gradeRes
@@ -52,7 +55,8 @@ async function createUser({ userName, password, gender, gradeId, role, fullName,
       gender,
       role,
       gradeId,
-      fullName
+      fullName,
+      studentNumber
     },{transaction:t})
     await t.commit()
     const {dataValues} = result
@@ -75,7 +79,7 @@ async function deleteUser(id,{transaction}) {
 }
 
 async function updateUser(
-  { gender, userName, fullName, gradeName, school, major},
+  { gender, userName, fullName, gradeName, school, major, studentNumber},
   id,
   gradeId,
   role
@@ -89,6 +93,9 @@ async function updateUser(
   }
   if (userName) {
     updateUserData.userName = userName
+  }
+  if (studentNumber) {
+    updateUserData.studentNumber = studentNumber
   }
   if (fullName) {
     updateUserData.fullName = fullName
@@ -139,12 +146,25 @@ async function updatePassword(
   }
 }
 
-
+async function getUsersByGrade ({
+  gradeId
+}) {
+  const result = await User.findAll({
+    attributes: ['fullName', 'id', 'studentNumber'],
+    raw: true,
+    where: {
+      gradeId
+    }
+  })
+  console.log('userList',result)
+  return result
+}
 
 module.exports = {
   getOneUser,
   createUser,
   deleteUser,
   updateUser,
-  updatePassword
+  updatePassword,
+  getUsersByGrade
 }

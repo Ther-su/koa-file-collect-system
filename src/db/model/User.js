@@ -24,6 +24,11 @@ const User = seq.define('user', {
     allowNull: false,
     comment: '性别（1 男性，2 女性）'
   },
+  studentNumber: {
+    type: STRING,
+    allowNull: false,
+    comment: '学号'
+  },
   role: {
     type: STRING,
     allowNull: false,

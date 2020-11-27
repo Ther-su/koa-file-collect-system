@@ -3,7 +3,8 @@ const {
   createUser,
   deleteUser,
   updateUser,
-  updatePassword
+  updatePassword,
+  getUsersByGrade
 } = require('../services/user')
 const { SuccessModel, ErrorModel } = require('../model/ResModel')
 const {doCrypto,deCryptId,enCryptId} = require('../utils/cryp')
@@ -14,10 +15,11 @@ const {
   changeInfoFailInfo,
   registerUserNameExistInfo,
   getInfoFailInfo,
-  changePasswordFailInfo
+  changePasswordFailInfo,
+  getGradePeopleFailInfo
 } = require('../model/ErrorInfo')
 
-async function register(ctx, { userName, password, gender, fullName, role, gradeId, gradeName, school, major }) {
+async function register(ctx, { userName, password, gender, fullName, role, gradeId, gradeName, school, major,studentNumber }) {
   try {
     const userInfo = await getOneUser({userName})
     if (userInfo) {
@@ -36,7 +38,8 @@ async function register(ctx, { userName, password, gender, fullName, role, grade
       gradeId,
       gradeName,
       school,
-      major
+      major,
+      studentNumber
     })
     newUser.gradeId = enCryptId(newUser.gradeId)
     ctx.session.userInfo = newUser
@@ -80,6 +83,15 @@ async function getInfo({id}) {
   }
 }
 
+async function findGradeAllPeople ({gradeId}) {
+  try {
+    const userList = await getUsersByGrade({gradeId:deCryptId(gradeId)})
+    console.log('controller',userList)
+    return new SuccessModel(userList)
+  }catch(e) {
+    return new ErrorModel(getGradePeopleFailInfo)
+  }
+}
 
 async function deleteCurUser(userName) {
   const result = await deleteUser(userName)
@@ -91,10 +103,10 @@ async function deleteCurUser(userName) {
   return new ErrorModel(deleteUserFailInfo)
 }
 
-async function changeInfo(ctx, { userName, gender, fullName, gradeName, school, major }) {
+async function changeInfo(ctx, { userName, gender, fullName, gradeName, school, major, studentNumber }) {
   try {
     const result = await updateUser(
-      { userName, gender, fullName,gradeName, school, major },
+      { userName, gender, fullName,gradeName, school, major, studentNumber },
       ctx.session.userInfo.id,
       deCryptId(ctx.session.userInfo.gradeId),
       ctx.session.userInfo.role
@@ -118,6 +130,9 @@ async function changeInfo(ctx, { userName, gender, fullName, gradeName, school, 
       }
       if (major) {
         ctx.session.userInfo.major = major
+      }
+      if (studentNumber) {
+        ctx.session.userInfo.studentNumber = studentNumber
       }
     }
     return new SuccessModel()
@@ -157,5 +172,6 @@ module.exports = {
   deleteCurUser,
   changeInfo,
   getInfo,
-  changePassword
+  changePassword,
+  findGradeAllPeople
 }

@@ -25,6 +25,7 @@ async function updatePeopleNum({
   },{transaction})
 }
 
+
 async function updateGrade({
   gradeName,
   major,

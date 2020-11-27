@@ -34,24 +34,8 @@ module.exports = {
         code: 10006,
         message: '修改密码失败，请重试'
     },
-    // 上传文件过大
-    uploadFileSizeFailInfo: {
+    getGradePeopleFailInfo: {
         code: 10007,
-        message: '上传文件尺寸过大'
-    },
-    // 修改基本信息失败
-    changeInfoFailInfo: {
-        code: 10008,
-        message: '修改用户信息失败'
-    },
-    // json schema 校验失败
-    jsonSchemaFileInfo: {
-        code: 10009,
-        message: '数据格式校验错误'
-    },
-    // 删除用户失败
-    deleteUserFailInfo: {
-        code: 10010,
-        message: '删除用户失败'
-    },
+        message: '获取班级用户列表失败'
+    }
 }

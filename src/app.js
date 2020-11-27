@@ -15,6 +15,7 @@ const { isProd } = require('./utils/env')
 
 const user = require('./routes/user')
 
+
 // error handler
 let onerrorConf = {}
 if (isProd) {
@@ -66,6 +67,7 @@ app.use(async (ctx, next) => {
 
 // routes
 app.use(user.routes(), user.allowedMethods())
+
 
 // error-handling
 app.on('error', (err, ctx) => {
