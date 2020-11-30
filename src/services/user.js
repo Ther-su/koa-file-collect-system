@@ -28,10 +28,6 @@ async function getOneUser({userName,id,password}) {
       }
     ],
   })
-  if (result == null) {
-    // 未找到
-    return result
-  }
   
   return result
 }
@@ -156,7 +152,6 @@ async function getUsersByGrade ({
       gradeId
     }
   })
-  console.log('userList',result)
   return result
 }
 

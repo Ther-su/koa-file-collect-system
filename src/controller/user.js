@@ -58,8 +58,6 @@ async function login(ctx, {userName, password}) {
         // 登录失败
       return new ErrorModel(loginFailInfo)
     }
-    // 登录成功
-    delete userInfo.role
     userInfo.gradeId = enCryptId(userInfo.gradeId)
     if (ctx.session.userInfo == null) {
       ctx.session.userInfo = userInfo
@@ -86,7 +84,6 @@ async function getInfo({id}) {
 async function findGradeAllPeople ({gradeId}) {
   try {
     const userList = await getUsersByGrade({gradeId:deCryptId(gradeId)})
-    console.log('controller',userList)
     return new SuccessModel(userList)
   }catch(e) {
     return new ErrorModel(getGradePeopleFailInfo)

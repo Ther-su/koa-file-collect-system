@@ -37,5 +37,17 @@ module.exports = {
     getGradePeopleFailInfo: {
         code: 10007,
         message: '获取班级用户列表失败'
+    },
+    roleCheckFailInfo: {
+        code: 10008,
+        message: '您没有该项操作的权限'
+    },
+    publishTaskFailInfo: {
+        code: 10009,
+        mesage: '发布新作业失败'
+    },
+    getMyTaskFailInfo: {
+        code: 10010,
+        message: '获取我的作业失败'
     }
 }

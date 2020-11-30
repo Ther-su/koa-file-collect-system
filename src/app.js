@@ -5,6 +5,7 @@ const views = require('koa-views')
 const json = require('koa-json')
 const onerror = require('koa-onerror')
 const bodyparser = require('koa-bodyparser')
+const koaBody = require('koa-body')
 const logger = require('koa-logger')
 const redisStore = require('koa-redis')
 const session = require('koa-generic-session')
@@ -14,7 +15,7 @@ const { isProd } = require('./utils/env')
 
 
 const user = require('./routes/user')
-
+const task = require('./routes/task')
 
 // error handler
 let onerrorConf = {}
@@ -26,10 +27,15 @@ if (isProd) {
 onerror(app, onerrorConf)
 
 // middlewares
-app.use(bodyparser({
-  enableTypes:['json', 'form', 'text']
+// app.use(bodyparser({
+//   enableTypes:['json', 'form', 'text']
+// }))
+app.use(koaBody({
+  multipart: true,
+  formidable: {
+      maxFileSize: 2000 * 1024 * 1024    // 设置上传文件大小最大限制，默认2M
+  }
 }))
-
 app.use(cors({
   credentials: true
 }))
@@ -67,7 +73,7 @@ app.use(async (ctx, next) => {
 
 // routes
 app.use(user.routes(), user.allowedMethods())
-
+app.use(task.routes(), task.allowedMethods())
 
 // error-handling
 app.on('error', (err, ctx) => {

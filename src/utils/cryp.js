@@ -39,7 +39,6 @@ function aesDecrypt(encrypted, key) {
 }
 
 function enCryptId (data) {
-    console.log('data',data)
     return aesEncrypt(String(data),CRYPTO_SECRET_KEY)
 }
 
