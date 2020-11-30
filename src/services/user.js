@@ -1,5 +1,4 @@
 const {User,Grade} = require('../db/model')
-const {createGrade} = require('./grade')
 const seq = require('../db/seq')
 async function getOneUser({userName,id,password}) {
   // 查询条件
@@ -32,19 +31,9 @@ async function getOneUser({userName,id,password}) {
   return result
 }
 
-async function createUser({ userName, password, gender, gradeId, role, fullName, major, school, gradeName, studentNumber }) {
+async function createUser({ userName, password, gender, gradeId, role, fullName, major, school, gradeName, studentNumber },{transaction}) {
   const t = await seq.transaction();
   try {
-    let gradeRes
-    if (role === 'admin') {
-      gradeRes = await createGrade({
-        major,
-        school,
-        gradeName,
-        peopleNum: 0
-      },{transaction:t})
-      gradeId = gradeRes.id
-    }
     const result = await User.create({
       password,
       userName,
@@ -53,13 +42,11 @@ async function createUser({ userName, password, gender, gradeId, role, fullName,
       gradeId,
       fullName,
       studentNumber
-    },{transaction:t})
-    await t.commit()
+    },{transaction})
     const {dataValues} = result
     dataValues.gradeId = gradeId
     return dataValues
   } catch(error) {
-    await t.rollback()
     throw new Error(error)
   }
 }
@@ -75,15 +62,11 @@ async function deleteUser(id,{transaction}) {
 }
 
 async function updateUser(
-  { gender, userName, fullName, gradeName, school, major, studentNumber},
-  id,
-  gradeId,
-  role
+  { gender, userName, fullName, studentNumber, id, role},
+  {transaction}
 ) {
   // 拼接修改内容
-  const t = await seq.transaction();
   const updateUserData = {}
-  const updateGradeData = {}
   if (gender) {
     updateUserData.gender = gender
   }
@@ -96,33 +79,16 @@ async function updateUser(
   if (fullName) {
     updateUserData.fullName = fullName
   }
-  if (gradeName) {
-    updateGradeData.gradeName = gradeName
-  }
-  if (school) {
-    updateGradeData.school = school
-  }
-  if (major) {
-    updateGradeData.major = major
+  if (role) {
+    updateUserData.role = role
   }
   try {
-    if (JSON.stringify(updateUserData)!='{}') {
-      await User.update(updateUserData, {
-        where: {
-          id
-        },
-      },{transaction:t})
-    }
-    if (JSON.stringify(updateGradeData)!='{}' && role=='admin') {
-      await Grade.update(updateGradeData,{
-        where: {
-          id:gradeId
-        }
-      },{transaction:t})
-    }
-    await t.commit()
+    await User.update(updateUserData, {
+      where: {
+        id
+      },
+    },{transaction})
   } catch(e) {
-    await t.rollback()
     throw new Error(e)
   }
 }

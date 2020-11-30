@@ -29,13 +29,20 @@ async function updatePeopleNum({
 async function updateGrade({
   gradeName,
   major,
-  school
-},gradeId,{transaction}) {
-  await Grade.update({
-    gradeName,
-    major,
-    school
-  },{
+  school,
+  gradeId
+},{transaction}) {
+  const updateGradeData = {}
+  if (gradeName) {
+    updateGradeData.gradeName = gradeName
+  }
+  if (school) {
+    updateGradeData.school = school
+  }
+  if (major) {
+    updateGradeData.major = major
+  }
+  await Grade.update(updateGradeData,{
     where:{
       id: gradeId
     }

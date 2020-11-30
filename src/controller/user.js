@@ -6,6 +6,8 @@ const {
   updatePassword,
   getUsersByGrade
 } = require('../services/user')
+const {createGrade, updateGrade} = require('../services/grade')
+const seq = require('../db/seq')
 const { SuccessModel, ErrorModel } = require('../model/ResModel')
 const {doCrypto,deCryptId,enCryptId} = require('../utils/cryp')
 const {
@@ -20,7 +22,9 @@ const {
 } = require('../model/ErrorInfo')
 
 async function register(ctx, { userName, password, gender, fullName, role, gradeId, gradeName, school, major,studentNumber }) {
+  let t = null
   try {
+    t = await seq.transaction();
     const userInfo = await getOneUser({userName})
     if (userInfo) {
       // 用户名已存在
@@ -29,6 +33,16 @@ async function register(ctx, { userName, password, gender, fullName, role, grade
     if (gradeId) {
       gradeId = deCryptId(gradeId)
     }
+    let newGrade = null
+    if (role === 'admin') {
+      newGrade = await createGrade({
+        major,
+        school,
+        gradeName,
+        peopleNum: 0
+      },{transaction:t})
+      gradeId = newGrade.id
+    }
     const newUser = await createUser({
       userName,
       password: doCrypto(password),
@@ -36,15 +50,17 @@ async function register(ctx, { userName, password, gender, fullName, role, grade
       fullName,
       role,
       gradeId,
-      gradeName,
-      school,
-      major,
       studentNumber
-    })
+    },{transaction:t})
     newUser.gradeId = enCryptId(newUser.gradeId)
+    if (newGrade) {
+      Object.assign(newUser, newGrade)
+    }
     ctx.session.userInfo = newUser
+    await t.commit()
     return new SuccessModel(newUser)
   } catch (ex) {
+    await t.rollback()
     console.error(ex.message, ex.stack)
     return new ErrorModel(registerFailInfo)
   }
@@ -101,14 +117,50 @@ async function deleteCurUser(userName) {
 }
 
 async function changeInfo(ctx, { userName, gender, fullName, gradeName, school, major, studentNumber }) {
+  let t = null
   try {
-    const result = await updateUser(
-      { userName, gender, fullName,gradeName, school, major, studentNumber },
-      ctx.session.userInfo.id,
-      deCryptId(ctx.session.userInfo.gradeId),
-      ctx.session.userInfo.role
-    )
-    if (result) {
+    t = await seq.transaction();
+    const updateUserData = {}
+    const updateGradeData = {}
+    if (gender) {
+      updateUserData.gender = gender
+    }
+    if (userName) {
+      updateUserData.userName = userName
+    }
+    if (studentNumber) {
+      updateUserData.studentNumber = studentNumber
+    }
+    if (fullName) {
+      updateUserData.fullName = fullName
+    }
+    if (gradeName) {
+      updateGradeData.gradeName = gradeName
+    }
+    if (school) {
+      updateGradeData.school = school
+    }
+    if (major) {
+      updateGradeData.major = major
+    }
+    let updatedUser = null, updatedGrade = null
+    if (JSON.stringify(updateUserData)!='{}') {
+      updatedUser = await updateUser(
+        { userName, gender, fullName,gradeName, school, major, studentNumber, id:ctx.session.userInfo.id },
+        {transaction:t}
+      )
+    }
+
+    if (JSON.stringify(updateGradeData)!='{}' && ctx.session.userInfo.role=='admin') {
+      updatedGrade = await updateGrade({
+        gradeName,
+        major,
+        school,
+        gradeId: deCryptId(ctx.session.userInfo.gradeId)
+      },{transaction:t})
+    }
+
+    if (updatedUser) {
       // 执行成功
       if (userName) {
         ctx.session.userInfo.userName = userName  
@@ -119,6 +171,12 @@ async function changeInfo(ctx, { userName, gender, fullName, gradeName, school, 
       if (fullName) {
         ctx.session.userInfo.fullName = fullName
       }
+      if (studentNumber) {
+        ctx.session.userInfo.studentNumber = studentNumber
+      }
+    }
+
+    if (updatedGrade) {
       if (gradeName) {
         ctx.session.userInfo.gradeName = gradeName
       }
@@ -128,14 +186,13 @@ async function changeInfo(ctx, { userName, gender, fullName, gradeName, school, 
       if (major) {
         ctx.session.userInfo.major = major
       }
-      if (studentNumber) {
-        ctx.session.userInfo.studentNumber = studentNumber
-      }
     }
+    await t.commit()
     return new SuccessModel()
   } catch (e) {
     // 失败
     console.error(e.message, e.stack)
+    await t.rollback()
     return new ErrorModel(changeInfoFailInfo)
   }
 }
