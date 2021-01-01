@@ -21,7 +21,7 @@ const {
   getGradePeopleFailInfo
 } = require('../model/ErrorInfo')
 
-async function register(ctx, { userName, password, gender, fullName, role, gradeId, gradeName, school, major,studentNumber }) {
+async function adminRegister(ctx, { userName, password, gender, fullName, role, gradeId, gradeName, school, major,studentNumber }) {
   let t = null
   try {
     t = await seq.transaction();
@@ -30,19 +30,13 @@ async function register(ctx, { userName, password, gender, fullName, role, grade
       // 用户名已存在
       return new ErrorModel(registerUserNameExistInfo)
     }
-    if (gradeId) {
-      gradeId = deCryptId(gradeId)
-    }
-    let newGrade = null
-    if (role === 'admin') {
-      newGrade = await createGrade({
-        major,
-        school,
-        gradeName,
-        peopleNum: 0
-      },{transaction:t})
-      gradeId = newGrade.id
-    }
+    const newGrade = await createGrade({
+      major,
+      school,
+      gradeName,
+      peopleNum: 0
+    },{transaction:t})
+    gradeId = newGrade.id
     const newUser = await createUser({
       userName,
       password: doCrypto(password),
@@ -52,10 +46,39 @@ async function register(ctx, { userName, password, gender, fullName, role, grade
       gradeId,
       studentNumber
     },{transaction:t})
+    console.log(newUser)
     newUser.gradeId = enCryptId(newUser.gradeId)
-    if (newGrade) {
-      Object.assign(newUser, newGrade)
+    ctx.session.userInfo = newUser
+    Object.assign(newUser,newGrade)
+    await t.commit()
+    return new SuccessModel(newUser)
+  } catch (ex) {
+    await t.rollback()
+    console.error(ex.message, ex.stack)
+    return new ErrorModel(registerFailInfo)
+  }
+}
+
+async function studentRegister(ctx, { userName, password, gender, fullName, role, gradeId, studentNumber }) {
+  let t = null
+  try {
+    t = await seq.transaction();
+    const userInfo = await getOneUser({userName})
+    if (userInfo) {
+      // 用户名已存在
+      return new ErrorModel(registerUserNameExistInfo)
     }
+    let deCryptGradeId = deCryptId(gradeId)
+    const newUser = await createUser({
+      userName,
+      password:doCrypto(password),
+      gender,
+      fullName,
+      role,
+      gradeId:deCryptGradeId,
+      studentNumber
+    },{transaction:t})
+    newUser.gradeId = gradeId
     ctx.session.userInfo = newUser
     await t.commit()
     return new SuccessModel(newUser)
@@ -220,7 +243,8 @@ async function logout(ctx) {
 }
 
 module.exports = {
-  register,
+  adminRegister,
+  studentRegister,
   login,
   logout,
   deleteCurUser,

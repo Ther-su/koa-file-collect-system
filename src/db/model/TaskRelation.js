@@ -11,9 +11,14 @@ const TaskRelation = seq.define('taskRelation', {
   },
   submitTime: {
     type: DATE,
-    allowNull: false,
     comment: '提交时间',
     allowNull: true
+  },
+  fileHash: {
+    type: STRING,
+    allowNull: true,
+    comment: '作业hash值',
+    defaultValue: ''
   }
 },{
   timestamps: false

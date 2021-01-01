@@ -1,12 +1,13 @@
 const router = require('koa-router')()
 const {
-    register,
-    login,
-    changeInfo,
-    logout,
-    getInfo,
-    changePassword,
-    findGradeAllPeople
+  adminRegister,
+  studentRegister,
+  login,
+  changeInfo,
+  logout,
+  getInfo,
+  changePassword,
+  findGradeAllPeople
 } = require('../controller/user')
 const { loginCheck } = require('../middlewares/loginCheck')
 
@@ -15,18 +16,33 @@ router.prefix('/api')
 
 router.post('/user/register', async (ctx, next) => {
   const { userName, password, gender, role, fullName, gradeId, school, gradeName, major, studentNumber } = ctx.request.body
-  ctx.body = await register(ctx, {
-    userName,
-    password,
-    gender,
-    role,
-    fullName,
-    gradeName,
-    school,
-    major,
-    gradeId,
-    studentNumber
-  })
+  let registerUser = null;
+  if (role=='admin') {
+    registerUser = await adminRegister(ctx, {
+      userName,
+      password,
+      gender,
+      role,
+      fullName,
+      gradeName,
+      school,
+      major,
+      gradeId,
+      studentNumber
+    })
+  } else {
+    console.log('进入')
+    registerUser = await studentRegister(ctx, {
+      userName,
+      password,
+      gender,
+      role,
+      fullName,
+      gradeId,
+      studentNumber
+    })
+  }
+  ctx.body = registerUser
 })
 
 

@@ -32,7 +32,6 @@ async function getOneUser({userName,id,password}) {
 }
 
 async function createUser({ userName, password, gender, gradeId, role, fullName, major, school, gradeName, studentNumber },{transaction}) {
-  const t = await seq.transaction();
   try {
     const result = await User.create({
       password,

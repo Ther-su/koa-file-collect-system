@@ -1,10 +1,12 @@
 const Koa = require('koa')
 var cors = require('koa2-cors')
 const app = new Koa()
+const path = require('path')
+const static = require('koa-static')
 const views = require('koa-views')
 const json = require('koa-json')
 const onerror = require('koa-onerror')
-const bodyparser = require('koa-bodyparser')
+//const bodyparser = require('koa-bodyparser')
 const koaBody = require('koa-body')
 const logger = require('koa-logger')
 const redisStore = require('koa-redis')
@@ -33,7 +35,7 @@ onerror(app, onerrorConf)
 app.use(koaBody({
   multipart: true,
   formidable: {
-      maxFileSize: 2000 * 1024 * 1024    // 设置上传文件大小最大限制，默认2M
+    maxFileSize: 2000 * 1024 * 1024    // 设置上传文件大小最大限制，默认2M
   }
 }))
 app.use(cors({
@@ -41,7 +43,7 @@ app.use(cors({
 }))
 app.use(json())
 app.use(logger())
-app.use(require('koa-static')(__dirname + '/public'))
+app.use(static(path.join(__dirname, 'public')))
 
 app.use(views(__dirname + '/views', {
   extension: 'pug'

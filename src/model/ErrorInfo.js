@@ -49,5 +49,13 @@ module.exports = {
     getMyTaskFailInfo: {
         code: 10010,
         message: '获取我的作业失败'
+    },
+    uploadImageFailInfo: {
+        code: 10011,
+        message: '上传图片失败'
+    },
+    uploadFileFailInfo: {
+        code: 10012,
+        message: '上传文件失败'
     }
 }

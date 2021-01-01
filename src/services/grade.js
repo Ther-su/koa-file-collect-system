@@ -15,15 +15,6 @@ async function createGrade({
   return data
 }
 
-async function updatePeopleNum({
-  gradeId
-},{transaction}) {
-  await Grade.increment('peopleNum',{
-    where:{
-      id: gradeId
-    }
-  },{transaction})
-}
 
 
 async function updateGrade({
@@ -51,6 +42,5 @@ async function updateGrade({
 
 module.exports = {
   createGrade,
-  updatePeopleNum,
   updateGrade
 }
