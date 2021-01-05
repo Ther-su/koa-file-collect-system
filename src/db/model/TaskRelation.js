@@ -19,7 +19,12 @@ const TaskRelation = seq.define('taskRelation', {
     allowNull: true,
     comment: '作业hash值',
     defaultValue: ''
-  }
+  },
+  suffix: {
+    type: STRING,
+    allowNull: true,
+    comment: '文件后缀'
+  },
 },{
   timestamps: false
 })

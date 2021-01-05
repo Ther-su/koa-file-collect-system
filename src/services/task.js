@@ -1,9 +1,8 @@
-const {TaskRelation,Task} = require('../db/model')
+const {TaskRelation,Task, User} = require('../db/model')
 const seq = require('../db/seq');
-const { uploadImageFailInfo } = require('../model/ErrorInfo');
 
 async function createTask(
-  {taskName, taskContent, deadline, canSubmitWhenOverdue,gradeId, checkedStudents, publishTime},
+  {taskName, taskContent, deadline,gradeId, checkedStudents, publishTime},
   {transaction}
   ) {
   try {
@@ -11,7 +10,6 @@ async function createTask(
       taskName, 
       taskContent, 
       deadline, 
-      canSubmitWhenOverdue,
       gradeId,
       publishTime
     },{transaction})
@@ -29,13 +27,15 @@ async function createTask(
   }
 }
 
-async function getMyTask({userId}) {
+async function getMyTasks({userId, pageNum, pageSize}) {
   try {
     const result = await TaskRelation.findAndCountAll({
-      attributes:['id','taskId','status','submitTime',seq.col('task.taskName'),seq.col('task.taskContent'),seq.col('task.deadline'),seq.col('task.picNum'),seq.col('task.publishTime'),seq.col('task.canSubmitWhenOverdue')],
+      attributes:['id','taskId','status','submitTime',seq.col('task.taskName'),seq.col('task.taskContent'),seq.col('task.deadline'),seq.col('task.publishTime')],
       where: {
         userId
       },
+      limit: pageSize,
+      offset: (pageNum - 1) * pageSize,
       raw: true,
       sort: ['publishTime', 'DESC'],
       include: [
@@ -54,13 +54,23 @@ async function getMyTask({userId}) {
   }
 }
 
-async function getPicNum({taskId}) {
+async function getSubmitSituation({taskId}) {
   try {
-    const result = await Task.findOne({
+    const result = await TaskRelation.findAll({
+      attributes:['id','taskId','status',seq.col('user.userName'),seq.col('user.fullName'),seq.col('user.gender'),seq.col('user.studentNumber')],
       where: {
-        id:taskId
+        taskId
       },
-      raw: true
+      raw: true,
+      include: [
+        {
+          model:User,
+          attributes: [],
+          where: {
+            '$user.id': seq.col('taskRelation.userId')
+          }
+        }
+      ],
     })
     return result
   } catch(error) {
@@ -68,29 +78,40 @@ async function getPicNum({taskId}) {
   }
 }
 
-async function addPicNum({
-  taskId
-},{transaction}) {
-  await Task.increment('picNum',{
-    where:{
-      id: taskId
-    }
-  },{transaction})
+async function getPublishedTasks({gradeId, pageNum, pageSize}) {
+  try {
+    const result = await Task.findAndCountAll({
+      where: {
+        gradeId
+      },
+      limit: pageSize,
+      offset: (pageNum - 1) * pageSize,
+      raw: true,
+      sort: ['publishTime', 'DESC'],
+    })
+    return result
+  } catch(error) {
+    throw new Error(error)
+  }
 }
 
-async function updateTaskStatus({taskId, status, submitTime, userId,fileHash},{transaction}) {
-  const updateTaskStatusData = {}
+
+async function updateTaskRelation({taskId, status, submitTime, userId,fileHash,suffix},{transaction}) {
+  const updateTaskRelationData = {}
   if (status) {
-    updateTaskStatusData.status = status
+    updateTaskRelationData.status = status
+  }
+  if (suffix) {
+    updateTaskRelationData.suffix = suffix
   }
   if (submitTime) {
-    updateTaskStatusData.submitTime = submitTime
+    updateTaskRelationData.submitTime = submitTime
   }
   if (fileHash) {
-    updateTaskStatusData.fileHash = fileHash
+    updateTaskRelationData.fileHash = fileHash
   }
   try {
-    const res = await TaskRelation.update(updateTaskStatusData, {
+    const res = await TaskRelation.update(updateTaskRelationData, {
       where: {
         userId,
         taskId
@@ -106,8 +127,8 @@ async function updateTaskStatus({taskId, status, submitTime, userId,fileHash},{t
 
 module.exports = {
   createTask,
-  getMyTask,
-  updateTaskStatus,
-  getPicNum,
-  addPicNum
+  getMyTasks,
+  getPublishedTasks,
+  updateTaskRelation,
+  getSubmitSituation
 }

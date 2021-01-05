@@ -23,18 +23,6 @@ const Task = seq.define('task', {
     allowNull: false,
     comment: '截止日期'
   },
-  canSubmitWhenOverdue: {
-    type: STRING,
-    allowNull: false,
-    defaultValue: '0',
-    comment: '过期后是否允许提交,1允许，2不允许'
-  },
-  picNum: {
-    type: INTEGER,
-    allowNull: false,
-    comment: '图片数量',
-    defaultValue: 0
-  },
 },{
   timestamps: false
 })
