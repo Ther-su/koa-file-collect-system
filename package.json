@@ -5,7 +5,7 @@
   "scripts": {
     "start": "cross-env NODE_ENV=dev node bin/www",
     "dev": "cross-env NODE_ENV=dev ./node_modules/.bin/nodemon --inspect=9229 bin/www",
-    "prd": "cross-env NODE_ENV=production pm2 start pm2.conf.json",
+    "prd": "cross-env NODE_ENV=production pm2 start bin/www",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
