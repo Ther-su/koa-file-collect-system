@@ -11,6 +11,7 @@ const koaBody = require('koa-body')
 const logger = require('koa-logger')
 const redisStore = require('koa-redis')
 const session = require('koa-generic-session')
+const compress = require('koa-compress');
 const { SESSION_SECRET_KEY } = require('./conf/secretKeys')
 const { REDIS_CONF } = require('./conf/db')
 const { isProd } = require('./utils/env')
@@ -45,7 +46,9 @@ app.use(json())
 app.use(logger())
 app.use(static(path.join(__dirname, 'public')))
 app.use(static( './dist'))
-
+app.use(compress({
+  threshold: 1024
+}))
 app.use(views(__dirname + '/views', {
   extension: 'pug'
 }))
