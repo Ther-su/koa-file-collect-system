@@ -33,6 +33,9 @@ onerror(app, onerrorConf)
 // app.use(bodyparser({
 //   enableTypes:['json', 'form', 'text']
 // }))
+app.use(compress({
+  threshold: 1024
+}))
 app.use(koaBody({
   multipart: true,
   formidable: {
@@ -45,10 +48,8 @@ app.use(cors({
 app.use(json())
 app.use(logger())
 app.use(static(path.join(__dirname, 'public')))
-app.use(static( './dist'))
-app.use(compress({
-  threshold: 1024
-}))
+app.use(static(path.join(__dirname, 'dist')))
+
 app.use(views(__dirname + '/views', {
   extension: 'pug'
 }))
