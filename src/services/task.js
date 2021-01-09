@@ -1,8 +1,25 @@
-const {TaskRelation,Task, User} = require('../db/model')
+const {TaskSubmit,Task, User} = require('../db/model')
 const seq = require('../db/seq');
 
+async function deleteTask(
+  {taskId},
+  {transaction}
+  ) {
+  try {
+    const result = await Task.destroy({
+      where: {
+        id: taskId
+      }
+    },{transaction})
+    const {dataValues} = result
+    return dataValues
+  } catch(error) {
+    throw new Error(error)
+  }
+}
+
 async function createTask(
-  {taskName, taskContent, deadline,gradeId, checkedStudents, publishTime},
+  {taskName, taskContent, deadline,gradeId, publishTime},
   {transaction}
   ) {
   try {
@@ -14,13 +31,35 @@ async function createTask(
       publishTime
     },{transaction})
     const {dataValues} = result
-    const userList = checkedStudents.map(item => {
-      return {
-        userId: item,
-        taskId: dataValues.id
+    return dataValues
+  } catch(error) {
+    throw new Error(error)
+  }
+}
+
+
+async function updateTask(
+  {taskName, taskContent, deadline, taskId},
+  {transaction}
+  ) {
+  const updateTaskData = {}
+  if (taskName) {
+    updateTaskData.taskName = taskName
+  }
+  if (taskContent) {
+    updateTaskData.taskContent = taskContent
+  }
+  if (deadline) {
+    updateTaskData.deadline = deadline
+  }
+
+  try {
+    const result = await Task.update(updateTaskData,{
+      where: {
+        id: taskId
       }
-    })
-    await TaskRelation.bulkCreate(userList,{transaction})
+    },{transaction})
+    const {dataValues} = result
     return dataValues
   } catch(error) {
     throw new Error(error)
@@ -29,7 +68,7 @@ async function createTask(
 
 async function getMyTasks({userId, pageNum, pageSize}) {
   try {
-    const result = await TaskRelation.findAndCountAll({
+    const result = await TaskSubmit.findAndCountAll({
       attributes:['id','taskId','status','submitTime',seq.col('task.taskName'),seq.col('task.taskContent'),seq.col('task.deadline'),seq.col('task.publishTime')],
       where: {
         userId
@@ -37,13 +76,12 @@ async function getMyTasks({userId, pageNum, pageSize}) {
       limit: pageSize,
       offset: (pageNum - 1) * pageSize,
       raw: true,
-      sort: ['publishTime', 'DESC'],
       include: [
         {
           model:Task,
           attributes: [],
           where: {
-            '$task.id': seq.col('taskRelation.taskId')
+            '$task.id': seq.col('taskSubmit.taskId')
           }
         }
       ],
@@ -54,29 +92,7 @@ async function getMyTasks({userId, pageNum, pageSize}) {
   }
 }
 
-async function getSubmitSituation({taskId}) {
-  try {
-    const result = await TaskRelation.findAll({
-      attributes:['id','taskId','status',seq.col('user.userName'),seq.col('user.fullName'),seq.col('user.gender'),seq.col('user.studentNumber')],
-      where: {
-        taskId
-      },
-      raw: true,
-      include: [
-        {
-          model:User,
-          attributes: [],
-          where: {
-            '$user.id': seq.col('taskRelation.userId')
-          }
-        }
-      ],
-    })
-    return result
-  } catch(error) {
-    throw new Error(error)
-  }
-}
+
 
 async function getPublishedTasks({gradeId, pageNum, pageSize}) {
   try {
@@ -87,7 +103,6 @@ async function getPublishedTasks({gradeId, pageNum, pageSize}) {
       limit: pageSize,
       offset: (pageNum - 1) * pageSize,
       raw: true,
-      sort: ['publishTime', 'DESC'],
     })
     return result
   } catch(error) {
@@ -96,39 +111,11 @@ async function getPublishedTasks({gradeId, pageNum, pageSize}) {
 }
 
 
-async function updateTaskRelation({taskId, status, submitTime, userId,fileHash,suffix},{transaction}) {
-  const updateTaskRelationData = {}
-  if (status) {
-    updateTaskRelationData.status = status
-  }
-  if (suffix) {
-    updateTaskRelationData.suffix = suffix
-  }
-  if (submitTime) {
-    updateTaskRelationData.submitTime = submitTime
-  }
-  if (fileHash) {
-    updateTaskRelationData.fileHash = fileHash
-  }
-  try {
-    const res = await TaskRelation.update(updateTaskRelationData, {
-      where: {
-        userId,
-        taskId
-      }
-    },
-      {transaction},
-    )
-    return res.dataValues
-  } catch(error) {
-    throw new Error(error)
-  }
-}
 
 module.exports = {
   createTask,
   getMyTasks,
   getPublishedTasks,
-  updateTaskRelation,
-  getSubmitSituation
+  updateTask,
+  deleteTask
 }

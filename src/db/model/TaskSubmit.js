@@ -2,7 +2,7 @@ const seq = require('../seq')
 const { STRING, INTEGER, DATE } = require('../types')
 
 // users
-const TaskRelation = seq.define('taskRelation', {
+const TaskSubmit = seq.define('taskSubmit', {
   status: {
     type: STRING,
     allowNull: false,
@@ -29,4 +29,4 @@ const TaskRelation = seq.define('taskRelation', {
   timestamps: false
 })
 
-module.exports = TaskRelation
+module.exports = TaskSubmit

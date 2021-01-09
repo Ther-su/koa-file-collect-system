@@ -1,17 +1,18 @@
 const User = require('./User')
 const Grade = require('./Grade')
 const Task = require('./Task')
-const TaskRelation = require('./TaskRelation')
-//require('../sync')
+const TaskSubmit = require('./TaskSubmit')
+require('../sync')
 Grade.hasMany(User)
 User.belongsTo(Grade)
 Task.belongsTo(Grade)
-Task.hasMany(TaskRelation)
-TaskRelation.belongsTo(Task)
-TaskRelation.belongsTo(User)
+Task.hasMany(TaskSubmit)
+TaskSubmit.belongsTo(Task)
+TaskSubmit.belongsTo(User)
 module.exports = {
   User,
   Grade,
   Task,
-  TaskRelation
+  TaskSubmit
 }
+

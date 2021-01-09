@@ -57,5 +57,33 @@ module.exports = {
     uploadFileFailInfo: {
         code: 10012,
         message: '上传文件失败'
-    }
+    },
+    verifyUploadFailInfo: {
+        code: 10013,
+        message: '验证上传失败'
+    },
+    handleOverdueFailInfo: {
+        code: 10014,
+        message: '处理作业过期失败'
+    },
+    updateTaskFailInfo: {
+        code: 10015,
+        message: '更新作业失败'
+    },
+    deleteTaskFailInfo: {
+        code: 10016,
+        message: '删除作业失败'
+    },
+    getPublishedTaskFailInfo: {
+        code: 10017,
+        message: '获取发布的作业失败'
+    },
+    getNeedSubmitListFailInfo: {
+        code: 10018,
+        message: '获取需提交作业用户信息失败'
+    },
+    downloadTaskFailInfo: {
+        code: 10019,
+        message: '下载作业失败'
+    },
 }

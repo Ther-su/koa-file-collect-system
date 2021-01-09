@@ -1,6 +1,30 @@
 const { SuccessModel, ErrorModel } = require('../model/ResModel')
-const { createTask, getMyTasks, updateTaskRelation, getPublishedTasks, getSubmitSituation } = require('../services/task')
-const { publishTaskFailInfo , uploadImageFailInfo, uploadFileFailInfo} = require('../model/ErrorInfo')
+const { 
+  createTask, 
+  getMyTasks, 
+  getPublishedTasks, 
+  updateTask,
+  deleteTask
+} = require('../services/task')
+const {
+  updateTaskSubmit,
+  getTaskSubmitList, 
+  getTaskSubmitRelationList,
+  bulkCreateTaskSubmit,
+  deleteTaskSubmit 
+} = require('../services/taskSubmit')
+const { 
+  publishTaskFailInfo, 
+  uploadImageFailInfo, 
+  uploadFileFailInfo, 
+  getMyTaskFailInfo, 
+  verifyUploadFailInfo,
+  handleOverdueFailInfo,
+  updateTaskFailInfo,
+  deleteTaskFailInfo,
+  getPublishedTaskFailInfo,
+  getNeedSubmitListFailInfo
+} = require('../model/ErrorInfo')
 const {doCrypto,deCryptId,enCryptId} = require('../utils/cryp')
 const { isProd } = require('../utils/env')
 const { ifNotExistMkdirs, extractExt } = require('../utils/file')
@@ -19,7 +43,7 @@ const UPLOAD_FILE_DIR = path.resolve(UPLOAD_DIR, 'taskSubmit')
 ifNotExistMkdirs(UPLOAD_DIR)
 ifNotExistMkdirs(UPLOAD_FILE_DIR)
 
-
+// 文件读写
 const pipeStream = (path, writeStream) =>
   new Promise((resolve) => {
     const readStream = fse.createReadStream(path);
@@ -30,30 +54,49 @@ const pipeStream = (path, writeStream) =>
     readStream.pipe(writeStream);
   });
 
+  // 布置新作业
 async function handleAddTask(ctx, { taskName, taskContent, deadline, checkedStudents, publishTime }) {
   let t = null
   try {
     t = await seq.transaction();
-    const res = await createTask({
-      taskName, taskContent, deadline,checkedStudents, publishTime, gradeId: deCryptId(ctx.session.userInfo.gradeId)},
+    const { id } = await createTask({
+      taskName, taskContent, deadline, publishTime, gradeId: deCryptId(ctx.session.userInfo.gradeId)},
       {transaction:t}
       )
+    const userList = checkedStudents.map(item => {
+      return {
+        userId: item,
+        taskId: id
+      }
+    })
+    await bulkCreateTaskSubmit(userList, {transaction:t})
     await t.commit()
-    return new SuccessModel(res)
+    return new SuccessModel()
   }catch (e) {
-    await t.rollback()
     console.error(e.message, e.stack)
+    await t.rollback()
     return new ErrorModel(publishTaskFailInfo)
   }
 }
 
+// 获取发布的作业
 async function handleGetPublishedTask (ctx,{gradeId, pageNum, pageSize}) {
   try {
     const res = await getPublishedTasks({gradeId: deCryptId(gradeId), pageNum: parseInt(pageNum), pageSize:parseInt(pageSize)})
-    return new SuccessModel({taskList:res.rows,count:res.count})
+    console.log(res)
+    const taskList = await Promise.all(
+      res.rows.map(async item => {
+        const submitterList = await getTaskSubmitList({taskId:item.id})
+        return {
+          ...item,
+          submitterList
+        }
+      })
+    )
+    return new SuccessModel({taskList,count:res.count})
   }catch (e) {
     console.error(e.message, e.stack)
-    return new ErrorModel(publishTaskFailInfo)
+    return new ErrorModel(getPublishedTaskFailInfo)
   }
 }
 
@@ -67,7 +110,7 @@ async function handleGetMyTask (ctx,{userId, pageNum, pageSize}) {
         const status = item.status
         const deadline = item.deadline
         if (status != '3' && Date.now() > new Date(deadline).getTime()) {
-          await updateTaskRelation({taskId:item.taskId,status:3,userId},{transaction:t})
+          await updateTaskSubmit({taskId:item.taskId,status:3,userId},{transaction:t})
         } 
         return item
       })
@@ -77,17 +120,17 @@ async function handleGetMyTask (ctx,{userId, pageNum, pageSize}) {
   }catch (e) {
     await t.rollback()
     console.error(e.message, e.stack)
-    return new ErrorModel(publishTaskFailInfo)
+    return new ErrorModel(getMyTaskFailInfo)
   }
 }
 
-async function handleGetSubmitSituation (ctx,{taskId}) {
+async function handleGetTaskSubmitList (ctx,{taskId}) {
   try {
-    const res = await getSubmitSituation({taskId})
-    return new SuccessModel({submitSituation:res})
+    const taskSubmitList = await getTaskSubmitRelationList({taskId})
+    return new SuccessModel({submitSituation:taskSubmitList})
   }catch (e) {
     console.error(e.message, e.stack)
-    return new ErrorModel(publishTaskFailInfo)
+    return new ErrorModel(getNeedSubmitListFailInfo)
   }
 }
 
@@ -98,10 +141,12 @@ async function handleUploadImg (ctx, { hash }) {
     const ext = extractExt(file.name);
     let filePath = `${UPLOAD_IMAGE_DIR}/${hash}${ext}`
     let remotefilePath = `${GET_IMAGE_DIR}/${hash}${ext}`
-    pipeStream(
-      file.path,
-      fse.createWriteStream(filePath)
-    )
+    if (!fse.existsSync(filePath)) {
+      pipeStream(
+        file.path,
+        fse.createWriteStream(filePath)
+      )
+    }
     return new SuccessModel({url:remotefilePath})
   } catch(ex) {
     console.error(ex.message, ex.stack)
@@ -109,18 +154,20 @@ async function handleUploadImg (ctx, { hash }) {
   }
 }
 
-async function handleVerifyUpload (ctx,{ hash, fileName }) {
+async function handleVerifyUpload (ctx,{ hash, fileName, submitTime, taskId }) {
   try {
+    console.log(hash, fileName)
     const ext = extractExt(fileName)
     const filePath = path.resolve(UPLOAD_FILE_DIR,`${hash}${ext}`)
-    if (fse,existsSync(filePath)) {
+    if (fse.existsSync(filePath)) {
+      await updateTaskSubmit({taskId,status:2,submitTime,userId:ctx.session.userInfo.id,fileHash,suffix:ext},{transaction:t})
       return new SuccessModel({presence:true})
     }else {
       return new SuccessModel({presence:false})
     }
   } catch (ex) {
     console.error(ex.message, ex.stack)
-    return new ErrorModel(uploadImageFailInfo)
+    return new ErrorModel(verifyUploadFailInfo)
   }
 }
 
@@ -173,7 +220,7 @@ async function handleFileMerge (ctx, { fileHash, fileName, taskId, submitTime })
         )
       )
     )
-    const res = await updateTaskRelation({taskId,status:2,submitTime,userId:ctx.session.userInfo.id,fileHash,suffix:ext},{transaction:t})
+    const res = await updateTaskSubmit({taskId,status:2,submitTime,userId:ctx.session.userInfo.id,fileHash,suffix:ext},{transaction:t})
     fse.rmdirSync(chunkDir)
     await t.commit()
     return new SuccessModel(res)
@@ -188,13 +235,60 @@ async function handleTaskOverdue (ctx,{taskId}) {
   let t = null
   try {
     t = await transaction()
-    const res = await updateTaskRelation({taskId,status:3,userId:ctx.session.userInfo.id},{transaction:t})
+    const res = await updateTaskSubmit({taskId,status:3,userId:ctx.session.userInfo.id},{transaction:t})
     await t.commit()
     return new SuccessModel(res)
   }catch (e) {
     await t.rollback()
     console.error(e.message, e.stack)
-    return new ErrorModel(uploadFileFailInfo)
+    return new ErrorModel(handleOverdueFailInfo)
+  }
+}
+
+async function handleUpdateTask(ctx, { taskName, taskContent, deadline, delSubmitters, addSubmitters, taskId }) {
+  let t = null
+  try {
+    t = await seq.transaction();
+    await updateTask(
+      {taskName, taskContent, deadline, taskId},
+      {transaction:t}
+      )
+    const userList = addSubmitters.map(item => {
+      return {
+        userId: item,
+        taskId
+      }
+    })
+    await bulkCreateTaskSubmit(userList, {transaction:t})
+    Promise.all(
+      delSubmitters.forEach(async item => {
+        await deleteTaskSubmit({taskId,userId:item}, {transaction:t})
+      })
+    )
+    await t.commit()
+    return new SuccessModel()
+  }catch (e) {
+    await t.rollback()
+    console.error(e.message, e.stack)
+    return new ErrorModel(updateTaskFailInfo)
+  }
+}
+
+async function handleDeleteTask(ctx, { taskId }) {
+  let t = null
+  try {
+    t = await seq.transaction();
+    await deleteTaskSubmit({taskId}, {transaction:t})
+    await deleteTask(
+      {taskId},
+      {transaction:t}
+      )
+    await t.commit()
+    return new SuccessModel()
+  }catch (e) {
+    await t.rollback()
+    console.error(e.message, e.stack)
+    return new ErrorModel(deleteTaskFailInfo)
   }
 }
 
@@ -207,5 +301,7 @@ module.exports = {
   handleTaskOverdue,
   handleGetPublishedTask,
   handleVerifyUpload,
-  handleGetSubmitSituation
+  handleGetTaskSubmitList,
+  handleUpdateTask,
+  handleDeleteTask
 }

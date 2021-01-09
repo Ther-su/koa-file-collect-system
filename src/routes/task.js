@@ -9,15 +9,18 @@ const {
   handleTaskOverdue, 
   handleGetPublishedTask, 
   handleVerifyUpload,
-  handleGetSubmitSituation 
+  handleGetTaskSubmitList,
+  handleUpdateTask,
+  handleDeleteTask
 } = require('../controller/task.js')
-
+const {
+  handleDownloadOneTask
+} = require('../controller/taskSubmit.js')
 router.prefix('/api')
 
 router.post('/task/add', adminCheck, async (ctx, next) => {
-  const { taskName, taskContent, deadline, checkedStudents, canSubmitWhenOverdue, publishTime } = ctx.request.body
-
-  ctx.body = await handleAddTask(ctx, { taskName, taskContent, deadline, checkedStudents, canSubmitWhenOverdue, publishTime })
+  const { taskName, taskContent, deadline, checkedStudents, publishTime } = ctx.request.body
+  ctx.body = await handleAddTask(ctx, { taskName, taskContent, deadline, checkedStudents, publishTime })
 })
 
 router.get('/task/my', async (ctx, next) => {
@@ -27,11 +30,13 @@ router.get('/task/my', async (ctx, next) => {
 
 router.get('/task/submitSituation', async (ctx, next) => {
   const { taskId } = ctx.request.query
-  ctx.body = await handleGetSubmitSituation(ctx, { taskId })
+  ctx.body = await handleGetTaskSubmitList(ctx, { taskId })
 })
 
-router.get('/task/presence', async (ctx, next) => {
+
+router.post('/task/presence', async (ctx, next) => {
   const { hash, fileName } = ctx.request.body
+  console.log(hash, fileName)
   ctx.body = await handleVerifyUpload(ctx, { hash, fileName })
 })
 
@@ -59,5 +64,29 @@ router.post('/task/overdue', async (ctx, next) => {
   const { taskId } = ctx.request.body
   ctx.body = await handleTaskOverdue(ctx, { taskId })
 })
+
+router.put('/task/update', async (ctx, next) => {
+  const { taskName, taskContent, deadline, delSubmitters, publishTime, addSubmitters, taskId } = ctx.request.body
+
+  ctx.body = await handleUpdateTask(ctx, { taskName, taskContent, deadline, delSubmitters, publishTime, addSubmitters, taskId })
+})
+
+router.get('/task/download', async (ctx, next) => {
+  ctx.set('Content-type', 'application/octet-stream')
+  const {taskId,userId} = ctx.request.query
+  ctx.body = await handleDownloadOneTask(ctx, {taskId,userId})
+})
+
+router.post('/task/overdue', async (ctx, next) => {
+  const { taskId } = ctx.request.body
+  ctx.body = await handleTaskOverdue(ctx, { taskId })
+})
+
+router.put('/task/delete', async (ctx, next) => {
+  const { taskId } = ctx.request.body
+  console.log('taskId',taskId)
+  ctx.body = await handleDeleteTask(ctx, { taskId })
+})
+
 
 module.exports = router

@@ -9,7 +9,7 @@ const Task = seq.define('task', {
     comment: '作业名称'
   },
   taskContent: {
-    type: STRING,
+    type: STRING(8000),
     allowNull: false,
     comment: '作业内容'
   },
